@@ -20,23 +20,27 @@
   "menu": {
     "items": [
       {
-        "label": "Create a new post",
-        "description": "crowd-vs-cloud",
+        "label": "Create today's game",
+        "description": "Start a new Crowd vs Cloud round",
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/post-create"
       },
       {
-        "label": "Example form",
-        "description": "Show a simple form",
-        "location": "subreddit",
+        "label": "→ Start Voting Phase",
+        "description": "Inject AI answers and open voting",
+        "location": "post",
         "forUserType": "moderator",
-        "endpoint": "/internal/menu/example-form"
+        "endpoint": "/internal/menu/advance-to-vote"
+      },
+      {
+        "label": "→ Reveal Results",
+        "description": "Calculate scores and show the reveal",
+        "location": "post",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/advance-to-results"
       }
     ]
-  },
-  "forms": {
-    "exampleForm": "/internal/form/example-submit"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install"

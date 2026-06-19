@@ -1,72 +1,392 @@
 import './index.css';
 
-import { StrictMode } from 'react';
+import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { navigateTo } from '@devvit/web/client';
-import { useCounter } from './hooks/useCounter';
+import { useGame } from './hooks/useGame';
+import type { AnswerForResults, AnswerForVote } from '../shared/api';
 
-export const App = () => {
-  const { count, username, loading, increment, decrement } = useCounter();
+// ── Submit Phase ─────────────────────────────────────────────────────────────
+
+type SubmitViewProps = {
+  prompt: string;
+  answerCount: number;
+  userHasSubmitted: boolean;
+  userAnswerText?: string;
+  submitting: boolean;
+  onSubmit: (text: string) => Promise<string | null>;
+};
+
+const SubmitView = ({
+  prompt,
+  answerCount,
+  userHasSubmitted,
+  userAnswerText,
+  submitting,
+  onSubmit,
+}: SubmitViewProps) => {
+  const [text, setText] = useState('');
+  const [fieldError, setFieldError] = useState<string | null>(null);
+
+  const handleSubmit = async () => {
+    if (!text.trim()) return;
+    const err = await onSubmit(text.trim());
+    if (err) setFieldError(err);
+  };
+
   return (
-    <div className="flex relative flex-col justify-center items-center min-h-screen gap-4 bg-white dark:bg-gray-900">
-      <img
-        className="object-contain w-1/2 max-w-[250px] mx-auto"
-        src="/snoo.png"
-        alt="Snoo"
-      />
-      <div className="flex flex-col items-center gap-2">
-        <h1 className="text-2xl font-bold text-center text-gray-900 dark:text-gray-100">
-          {username ? `Hey ${username} 👋` : ''}
-        </h1>
-        <p className="text-base text-center text-gray-600 dark:text-gray-300">
-          Edit{' '}
-          <span className="bg-[#e5ebee] dark:bg-gray-700 px-1 py-0.5 rounded">
-            src/client/game.tsx
-          </span>{' '}
-          to get started.
+    <div className="flex flex-col gap-6 w-full max-w-md">
+      <div className="text-center">
+        <span className="text-xs font-semibold uppercase tracking-widest text-[#d93900]">
+          Round Open
+        </span>
+        <h2 className="text-2xl font-bold mt-2 text-gray-900 dark:text-white leading-tight">
+          {prompt}
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          {answerCount} {answerCount === 1 ? 'answer' : 'answers'} submitted so far
         </p>
       </div>
-      <div className="flex items-center justify-center mt-5">
-        <button
-          className="flex items-center justify-center bg-[#d93900] dark:bg-orange-600 text-white w-14 h-14 text-[2.5em] rounded-full cursor-pointer font-mono leading-none transition-colors hover:bg-[#c23300] dark:hover:bg-orange-700"
-          onClick={decrement}
-          disabled={loading}
-        >
-          -
-        </button>
-        <span className="text-[1.8em] font-medium mx-5 min-w-[50px] text-center leading-none text-gray-900 dark:text-white">
-          {loading ? '...' : count}
+
+      {userHasSubmitted ? (
+        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 p-4 text-center">
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wide mb-1">
+            Your answer
+          </p>
+          <p className="text-lg font-medium text-gray-900 dark:text-white">
+            "{userAnswerText}"
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            Waiting for voting to open…
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <textarea
+            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-3 text-base resize-none focus:outline-none focus:ring-2 focus:ring-[#d93900] placeholder-gray-400"
+            rows={3}
+            maxLength={120}
+            placeholder="Your answer…"
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              setFieldError(null);
+            }}
+          />
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-400">{text.length}/120</span>
+            {fieldError && (
+              <span className="text-xs text-red-500">{fieldError}</span>
+            )}
+          </div>
+          <button
+            onClick={() => void handleSubmit()}
+            disabled={!text.trim() || submitting}
+            className="w-full py-3 rounded-xl bg-[#d93900] text-white font-semibold text-base disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#c23300] transition-colors"
+          >
+            {submitting ? 'Submitting…' : 'Submit my answer'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Vote Phase ────────────────────────────────────────────────────────────────
+
+type VoteViewProps = {
+  prompt: string;
+  answers: AnswerForVote[];
+  userHasVoted: boolean;
+  userVotes?: Record<string, 'human' | 'ai'>;
+  submitting: boolean;
+  onVote: (votes: Record<string, 'human' | 'ai'>) => Promise<string | null>;
+};
+
+const VoteView = ({
+  prompt,
+  answers,
+  userHasVoted,
+  userVotes,
+  submitting,
+  onVote,
+}: VoteViewProps) => {
+  const [selections, setSelections] = useState<Record<string, 'human' | 'ai'>>(userVotes ?? {});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const classified = Object.keys(selections).length;
+  const total = answers.length;
+  const allClassified = classified === total;
+
+  const toggle = (id: string, value: 'human' | 'ai') => {
+    if (userHasVoted) return;
+    setSelections((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleSubmit = async () => {
+    const err = await onVote(selections);
+    if (err) setSubmitError(err);
+  };
+
+  return (
+    <div className="flex flex-col gap-4 w-full max-w-md">
+      <div className="text-center">
+        <span className="text-xs font-semibold uppercase tracking-widest text-[#d93900]">
+          Voting Open
         </span>
-        <button
-          className="flex items-center justify-center bg-[#d93900] dark:bg-orange-600 text-white w-14 h-14 text-[2.5em] rounded-full cursor-pointer font-mono leading-none transition-colors hover:bg-[#c23300] dark:hover:bg-orange-700"
-          onClick={increment}
-          disabled={loading}
-        >
-          +
-        </button>
+        <h2 className="text-xl font-bold mt-1 text-gray-900 dark:text-white leading-tight">
+          {prompt}
+        </h2>
+        {!userHasVoted && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {classified}/{total} classified — pick Human or AI for each answer
+          </p>
+        )}
       </div>
-      <footer className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3 text-[0.8em] text-gray-600 dark:text-gray-400">
-        <button
-          className="cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors"
-          onClick={() => navigateTo('https://developers.reddit.com/docs')}
-        >
-          Docs
-        </button>
-        <span className="text-gray-300 dark:text-gray-600">|</span>
-        <button
-          className="cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors"
-          onClick={() => navigateTo('https://www.reddit.com/r/Devvit')}
-        >
-          r/Devvit
-        </button>
-        <span className="text-gray-300 dark:text-gray-600">|</span>
-        <button
-          className="cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors"
-          onClick={() => navigateTo('https://discord.com/invite/R7yu2wh9Qz')}
-        >
-          Discord
-        </button>
-      </footer>
+
+      <div className="flex flex-col gap-3">
+        {answers.map((answer) => {
+          const sel = selections[answer.id];
+          return (
+            <div
+              key={answer.id}
+              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3"
+            >
+              <p className="text-base text-gray-900 dark:text-white mb-3 font-medium">
+                "{answer.text}"
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => toggle(answer.id, 'human')}
+                  disabled={userHasVoted}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    sel === 'human'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40'
+                  } disabled:opacity-60`}
+                >
+                  🧠 Human
+                </button>
+                <button
+                  onClick={() => toggle(answer.id, 'ai')}
+                  disabled={userHasVoted}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    sel === 'ai'
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/40'
+                  } disabled:opacity-60`}
+                >
+                  🤖 AI
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {userHasVoted ? (
+        <div className="text-center py-3 text-sm text-gray-500 dark:text-gray-400">
+          Votes locked in — waiting for results…
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {submitError && (
+            <p className="text-xs text-red-500 text-center">{submitError}</p>
+          )}
+          <button
+            onClick={() => void handleSubmit()}
+            disabled={!allClassified || submitting}
+            className="w-full py-3 rounded-xl bg-[#d93900] text-white font-semibold text-base disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#c23300] transition-colors"
+          >
+            {submitting ? 'Locking in…' : `Lock in votes (${classified}/${total})`}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Results Phase ─────────────────────────────────────────────────────────────
+
+type ResultsViewProps = {
+  prompt: string;
+  revealedAnswers: AnswerForResults[];
+  userScore: number;
+  username: string;
+  leaderboard: { username: string; score: number }[];
+  userAnswerText?: string;
+  userVotes?: Record<string, 'human' | 'ai'>;
+};
+
+const ResultsView = ({
+  prompt,
+  revealedAnswers,
+  userScore,
+  username,
+  leaderboard,
+  userAnswerText,
+  userVotes,
+}: ResultsViewProps) => {
+  return (
+    <div className="flex flex-col gap-5 w-full max-w-md">
+      <div className="text-center">
+        <span className="text-xs font-semibold uppercase tracking-widest text-[#d93900]">
+          Results
+        </span>
+        <h2 className="text-xl font-bold mt-1 text-gray-900 dark:text-white leading-tight">
+          {prompt}
+        </h2>
+        <div className="mt-3 inline-block rounded-2xl bg-[#d93900]/10 px-5 py-2">
+          <span className="text-2xl font-bold text-[#d93900]">{userScore}</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400 ml-1">pts</span>
+        </div>
+        {userAnswerText && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Your answer: "{userAnswerText}"
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {revealedAnswers.map((answer) => {
+          const userGuess = userVotes?.[answer.id];
+          const guessedRight = userGuess
+            ? (userGuess === 'ai') === answer.isAI
+            : null;
+
+          return (
+            <div
+              key={answer.id}
+              className={`rounded-xl border p-3 ${
+                answer.isAI
+                  ? 'border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20'
+                  : 'border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <p className="text-base font-medium text-gray-900 dark:text-white flex-1">
+                  "{answer.text}"
+                </p>
+                <span
+                  className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${
+                    answer.isAI
+                      ? 'bg-purple-200 dark:bg-purple-700 text-purple-800 dark:text-purple-200'
+                      : 'bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-200'
+                  }`}
+                >
+                  {answer.isAI ? '🤖 AI' : '🧠 Human'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>
+                  {!answer.isAI && answer.authorUsername ? `by u/${answer.authorUsername}` : ''}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span>🧠 {answer.humanVoteCount}</span>
+                  <span>🤖 {answer.aiVoteCount}</span>
+                  {guessedRight !== null && (
+                    <span className={guessedRight ? 'text-emerald-500' : 'text-red-400'}>
+                      {guessedRight ? '✓' : '✗'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {leaderboard.length > 0 && (
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
+            Leaderboard
+          </h3>
+          <ol className="flex flex-col gap-2">
+            {leaderboard.map((entry, i) => (
+              <li
+                key={entry.username}
+                className={`flex items-center justify-between text-sm ${
+                  entry.username === username
+                    ? 'font-bold text-[#d93900]'
+                    : 'text-gray-700 dark:text-gray-300'
+                }`}
+              >
+                <span>
+                  <span className="text-gray-400 mr-2">#{i + 1}</span>
+                  u/{entry.username}
+                  {entry.username === username ? ' (you)' : ''}
+                </span>
+                <span>{entry.score} pts</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Root ──────────────────────────────────────────────────────────────────────
+
+export const App = () => {
+  const { state, loading, error, submitting, submitAnswer, submitVotes } = useGame();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
+        <p className="text-gray-500 dark:text-gray-400 animate-pulse">Loading…</p>
+      </div>
+    );
+  }
+
+  if (error || !state) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900 px-4">
+        <p className="text-red-500 text-center">{error ?? 'Something went wrong.'}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center min-h-screen bg-white dark:bg-gray-900 px-4 py-8">
+      <div className="w-full max-w-md mb-6 flex items-center gap-2">
+        <span className="text-lg font-black text-[#d93900]">Crowd</span>
+        <span className="text-lg font-black text-gray-400">vs</span>
+        <span className="text-lg font-black text-purple-600">Cloud</span>
+      </div>
+
+      {state.phase === 'submit' && (
+        <SubmitView
+          prompt={state.prompt}
+          answerCount={state.answerCount}
+          userHasSubmitted={state.userHasSubmitted}
+          userAnswerText={state.userAnswerText}
+          submitting={submitting}
+          onSubmit={submitAnswer}
+        />
+      )}
+
+      {state.phase === 'vote' && state.answers && (
+        <VoteView
+          prompt={state.prompt}
+          answers={state.answers}
+          userHasVoted={state.userHasVoted}
+          userVotes={state.userVotes}
+          submitting={submitting}
+          onVote={submitVotes}
+        />
+      )}
+
+      {state.phase === 'results' && state.revealedAnswers && (
+        <ResultsView
+          prompt={state.prompt}
+          revealedAnswers={state.revealedAnswers}
+          userScore={state.userScore ?? 0}
+          username={state.username}
+          leaderboard={state.leaderboard ?? []}
+          userAnswerText={state.userAnswerText}
+          userVotes={state.userVotes}
+        />
+      )}
     </div>
   );
 };

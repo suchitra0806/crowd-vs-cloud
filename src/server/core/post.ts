@@ -2,6 +2,6 @@ import { reddit } from '@devvit/web/server';
 
 export const createPost = async () => {
   return await reddit.submitCustomPost({
-    title: 'crowd-vs-cloud',
+    title: 'Crowd vs Cloud — Can you tell human from AI?',
   });
 };
