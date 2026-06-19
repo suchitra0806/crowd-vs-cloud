@@ -1,8 +1,6 @@
 import { Hono } from 'hono';
 import { context, redis, reddit } from '@devvit/web/server';
 import {
-  advanceToResults,
-  advanceToVote,
   buildLeaderboard,
   getAllVotes,
   getAnswers,
@@ -30,7 +28,7 @@ async function ensureInit(postId: string): Promise<string> {
   let prompt = await getPrompt(postId);
   if (!prompt) {
     const dayIndex = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
-    prompt = PROMPTS[dayIndex % PROMPTS.length];
+    prompt = PROMPTS[dayIndex % PROMPTS.length] ?? PROMPTS[0]!;
     await Promise.all([
       redis.set(`${postId}:prompt`, prompt),
       redis.set(`${postId}:phase`, 'submit'),

@@ -11,7 +11,7 @@ type SubmitViewProps = {
   prompt: string;
   answerCount: number;
   userHasSubmitted: boolean;
-  userAnswerText?: string;
+  userAnswerText?: string | undefined;
   submitting: boolean;
   onSubmit: (text: string) => Promise<string | null>;
 };
@@ -97,7 +97,7 @@ type VoteViewProps = {
   prompt: string;
   answers: AnswerForVote[];
   userHasVoted: boolean;
-  userVotes?: Record<string, 'human' | 'ai'>;
+  userVotes?: Record<string, 'human' | 'ai'> | undefined;
   submitting: boolean;
   onVote: (votes: Record<string, 'human' | 'ai'>) => Promise<string | null>;
 };
@@ -213,8 +213,8 @@ type ResultsViewProps = {
   userScore: number;
   username: string;
   leaderboard: { username: string; score: number }[];
-  userAnswerText?: string;
-  userVotes?: Record<string, 'human' | 'ai'>;
+  userAnswerText?: string | undefined;
+  userVotes?: Record<string, 'human' | 'ai'> | undefined;
 };
 
 const ResultsView = ({
