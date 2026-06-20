@@ -108,8 +108,7 @@ export async function advanceToResults(postId: string): Promise<void> {
         scores[voterName] = (scores[voterName] ?? 0) + 1;
       }
 
-      if (!answer.isAI && vote === 'ai') {
-        // Human author gets points for fooling this voter
+      if (!answer.isAI && vote === 'ai' && answer.authorId !== voterId) {
         scores[answer.authorUsername] = (scores[answer.authorUsername] ?? 0) + 2;
       }
     }

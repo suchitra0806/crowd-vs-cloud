@@ -111,7 +111,9 @@ api.get('/game/init', async (c) => {
     if (phase === 'submit') return c.json<GameInitResponse>(base);
 
     if (phase === 'vote') {
-      const answersForVote: AnswerForVote[] = answers.map((a) => ({ id: a.id, text: a.text }));
+      const answersForVote: AnswerForVote[] = answers
+        .filter((a) => a.authorId !== userId)
+        .map((a) => ({ id: a.id, text: a.text }));
       return c.json<GameInitResponse>({ ...base, answers: answersForVote });
     }
 
