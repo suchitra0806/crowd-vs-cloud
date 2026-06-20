@@ -27,7 +27,8 @@ export const useGame = () => {
   }, []);
 
   useEffect(() => {
-    void fetchState();
+    const init = async () => { await fetchState(); };
+    void init();
     intervalRef.current = setInterval(() => void fetchState(), 15_000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
