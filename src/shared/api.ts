@@ -25,6 +25,7 @@ export type GameInitResponse = {
   phase: GamePhase;
   prompt: string;
   username: string;
+  isMod: boolean;
   answerCount: number;
   userHasSubmitted: boolean;
   userAnswerText?: string;

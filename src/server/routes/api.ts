@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { context, redis, reddit } from '@devvit/web/server';
 import {
+  advanceToResults,
+  advanceToVote,
   buildLeaderboard,
   getAllVotes,
   getAnswers,
@@ -75,13 +77,16 @@ api.get('/game/init', async (c) => {
     ]);
 
     const userId = context.userId ?? 'anonymous';
+    const subredditName = context.subredditName ?? '';
 
-    const [userAnswerId, userVotedRaw, userVotesRaw] = await Promise.all([
+    const [userAnswerId, userVotedRaw, userVotesRaw, modListing] = await Promise.all([
       redis.get(`${postId}:user_answer:${userId}`),
       redis.get(`${postId}:user_voted:${userId}`),
       redis.get(`${postId}:user_votes:${userId}`),
+      username ? reddit.getModerators({ subredditName, username }).all() : Promise.resolve([]),
     ]);
 
+    const isMod = modListing.length > 0;
     const userHasSubmitted = !!userAnswerId;
     const userAnswer = userAnswerId ? answers.find((a) => a.id === userAnswerId) : undefined;
     const userHasVoted = !!userVotedRaw;
@@ -95,6 +100,7 @@ api.get('/game/init', async (c) => {
       phase,
       prompt,
       username: username ?? 'anonymous',
+      isMod,
       answerCount: answers.length,
       userHasSubmitted,
       userAnswerText: userAnswer?.text,
@@ -230,5 +236,33 @@ api.post('/game/vote', async (c) => {
   } catch (e) {
     console.error('Vote error:', e);
     return c.json<ErrResp>({ status: 'error', message: 'Failed to submit votes' }, 500);
+  }
+});
+
+api.post('/game/advance-to-vote', async (c) => {
+  const { postId } = context;
+  if (!postId) return c.json<ErrResp>({ status: 'error', message: 'Missing postId' }, 400);
+  try {
+    const phase = await getPhase(postId);
+    if (phase !== 'submit') return c.json<ErrResp>({ status: 'error', message: 'Not in submit phase' }, 400);
+    await advanceToVote(postId);
+    return c.json({ success: true });
+  } catch (e) {
+    console.error('Advance to vote error:', e);
+    return c.json<ErrResp>({ status: 'error', message: 'Failed to start voting phase' }, 500);
+  }
+});
+
+api.post('/game/advance-to-results', async (c) => {
+  const { postId } = context;
+  if (!postId) return c.json<ErrResp>({ status: 'error', message: 'Missing postId' }, 400);
+  try {
+    const phase = await getPhase(postId);
+    if (phase !== 'vote') return c.json<ErrResp>({ status: 'error', message: 'Not in vote phase' }, 400);
+    await advanceToResults(postId);
+    return c.json({ success: true });
+  } catch (e) {
+    console.error('Advance to results error:', e);
+    return c.json<ErrResp>({ status: 'error', message: 'Failed to reveal results' }, 500);
   }
 });

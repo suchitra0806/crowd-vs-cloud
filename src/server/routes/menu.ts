@@ -1,22 +1,32 @@
 import { Hono } from 'hono';
 import type { UiResponse } from '@devvit/web/shared';
+import type { Form } from '@devvit/web/shared';
 import { context } from '@devvit/web/server';
-import { createPost } from '../core/post';
 import { advanceToResults, advanceToVote, getPhase } from '../core/game';
 
 export const menu = new Hono();
 
+const CREATE_GAME_FORM: Form = {
+  title: 'Create a new game',
+  fields: [
+    {
+      type: 'paragraph',
+      name: 'prompt',
+      label: 'Prompt',
+      helpText: 'The question players will answer — e.g. "Name something you\'d find in a wizard\'s pocket"',
+      required: true,
+    },
+  ],
+  acceptLabel: 'Create game',
+};
+
 menu.post('/post-create', async (c) => {
-  try {
-    const post = await createPost();
-    return c.json<UiResponse>(
-      { navigateTo: `https://reddit.com/r/${context.subredditName}/comments/${post.id}` },
-      200
-    );
-  } catch (error) {
-    console.error(`Error creating post: ${error}`);
-    return c.json<UiResponse>({ showToast: 'Failed to create post' }, 400);
-  }
+  return c.json<UiResponse>({
+    showForm: {
+      name: 'create-game',
+      form: CREATE_GAME_FORM,
+    },
+  });
 });
 
 menu.post('/advance-to-vote', async (c) => {

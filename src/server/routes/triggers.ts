@@ -7,7 +7,7 @@ export const triggers = new Hono();
 
 triggers.post('/on-app-install', async (c) => {
   try {
-    const post = await createPost();
+    const post = await createPost("Name something you'd find in a wizard's pocket");
     const input = await c.req.json<OnAppInstallRequest>();
 
     return c.json<TriggerResponse>(

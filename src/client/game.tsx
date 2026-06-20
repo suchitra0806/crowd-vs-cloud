@@ -325,10 +325,69 @@ const ResultsView = ({
   );
 };
 
+// ── Mod Panel ────────────────────────────────────────────────────────────────
+
+type ModPanelProps = {
+  phase: string;
+  onAdvanceToVote: () => Promise<void>;
+  onAdvanceToResults: () => Promise<void>;
+};
+
+const ModPanel = ({ phase, onAdvanceToVote, onAdvanceToResults }: ModPanelProps) => {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const run = async (action: () => Promise<void>, label: string) => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await action();
+      setMsg(`✓ ${label}`);
+    } catch {
+      setMsg('Something went wrong');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="w-full max-w-md mt-6 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-3">
+      <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2">Mod controls</p>
+      <div className="flex gap-2">
+        <button
+          onClick={() => void run(onAdvanceToVote, 'Voting phase started')}
+          disabled={busy || phase !== 'submit'}
+          className="flex-1 py-2 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        >
+          → Start Voting
+        </button>
+        <button
+          onClick={() => void run(onAdvanceToResults, 'Results revealed')}
+          disabled={busy || phase !== 'vote'}
+          className="flex-1 py-2 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        >
+          → Reveal Results
+        </button>
+      </div>
+      {msg && <p className="text-xs text-gray-500 mt-2">{msg}</p>}
+    </div>
+  );
+};
+
 // ── Root ──────────────────────────────────────────────────────────────────────
 
 export const App = () => {
-  const { state, loading, error, submitting, submitAnswer, submitVotes } = useGame();
+  const { state, loading, error, submitting, submitAnswer, submitVotes, refresh } = useGame();
+
+  const advanceToVote = async () => {
+    await fetch('/api/game/advance-to-vote', { method: 'POST' });
+    await refresh();
+  };
+
+  const advanceToResults = async () => {
+    await fetch('/api/game/advance-to-results', { method: 'POST' });
+    await refresh();
+  };
 
   if (loading) {
     return (
@@ -385,6 +444,14 @@ export const App = () => {
           leaderboard={state.leaderboard ?? []}
           userAnswerText={state.userAnswerText}
           userVotes={state.userVotes}
+        />
+      )}
+
+      {state.isMod && (
+        <ModPanel
+          phase={state.phase}
+          onAdvanceToVote={advanceToVote}
+          onAdvanceToResults={advanceToResults}
         />
       )}
     </div>

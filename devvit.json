@@ -42,6 +42,9 @@
       }
     ]
   },
+  "forms": {
+    "create-game": "/internal/form/create-game"
+  },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install"
   },
