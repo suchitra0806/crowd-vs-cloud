@@ -2,7 +2,7 @@ import { reddit, redis } from '@devvit/web/server';
 
 export const createPost = async (prompt: string) => {
   const post = await reddit.submitCustomPost({
-    title: 'Crowd vs Cloud — Can you tell human from AI?',
+    title: `Crowd vs Cloud: ${prompt}`,
   });
 
   await Promise.all([
