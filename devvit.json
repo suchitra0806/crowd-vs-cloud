@@ -42,6 +42,16 @@
       }
     ]
   },
+  "settings": {
+    "global": {
+      "ANTHROPIC_API_KEY": {
+        "type": "string",
+        "label": "Anthropic API Key",
+        "helpText": "Your Anthropic API key for generating AI answers",
+        "isSecret": true
+      }
+    }
+  },
   "forms": {
     "create-game": "/internal/form/create-game"
   },

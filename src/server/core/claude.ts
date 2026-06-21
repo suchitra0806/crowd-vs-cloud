@@ -1,6 +1,9 @@
-const API_KEY = process.env.ANTHROPIC_API_KEY ?? '';
+import { settings } from '@devvit/web/server';
 
 export async function generateAIAnswers(prompt: string, humanAnswers: string[]): Promise<string[]> {
+  const apiKey = await settings.get<string>('ANTHROPIC_API_KEY');
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured in app settings');
+
   const examples = humanAnswers.slice(0, 5).map((a) => `- ${a}`).join('\n');
 
   const userMessage = `You are playing a party game. Players were asked: "${prompt}"
@@ -13,7 +16,7 @@ Return ONLY a JSON array of 3 strings. Example: ["answer one", "answer two", "an
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
+      'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
