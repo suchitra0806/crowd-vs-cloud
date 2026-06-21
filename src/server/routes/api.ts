@@ -11,7 +11,6 @@ import {
   setAllVotes,
   setAnswers,
 } from '../core/game';
-import { PROMPTS } from '../../shared/prompts';
 import type {
   AnswerForResults,
   AnswerForVote,
@@ -26,29 +25,17 @@ type ErrResp = ErrorResponse;
 
 export const api = new Hono();
 
-async function ensureInit(postId: string): Promise<string> {
-  let prompt = await getPrompt(postId);
-  if (!prompt) {
-    const dayIndex = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
-    prompt = PROMPTS[dayIndex % PROMPTS.length] ?? PROMPTS[0]!;
-    await Promise.all([
-      redis.set(`${postId}:prompt`, prompt),
-      redis.set(`${postId}:phase`, 'submit'),
-      redis.set(`${postId}:answers`, JSON.stringify([])),
-    ]);
-  }
-  return prompt;
-}
 
 api.get('/game/preview', async (c) => {
   const { postId } = context;
   if (!postId) return c.json<ErrResp>({ status: 'error', message: 'Missing postId' }, 400);
   try {
     const [prompt, phase, answers] = await Promise.all([
-      ensureInit(postId),
+      getPrompt(postId),
       getPhase(postId),
       getAnswers(postId),
     ]);
+    if (!prompt) return c.json<ErrResp>({ status: 'error', message: 'Game not found' }, 404);
     return c.json<GamePreviewResponse>({
       type: 'game_preview',
       phase,
@@ -67,9 +54,10 @@ api.get('/game/init', async (c) => {
 
   try {
     const [prompt, username] = await Promise.all([
-      ensureInit(postId),
+      getPrompt(postId),
       reddit.getCurrentUsername(),
     ]);
+    if (!prompt) return c.json<ErrResp>({ status: 'error', message: 'Game not found' }, 404);
 
     const [phase, answers] = await Promise.all([
       getPhase(postId),
