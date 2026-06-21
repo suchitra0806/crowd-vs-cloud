@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { UiResponse } from '@devvit/web/shared';
 import type { Form } from '@devvit/web/shared';
 import { context } from '@devvit/web/server';
-import { advanceToResults, advanceToVote, getPhase } from '../core/game';
+import { advanceToResults, advanceToVote, getAnswers, getPhase } from '../core/game';
 
 export const menu = new Hono();
 
@@ -34,9 +34,13 @@ menu.post('/advance-to-vote', async (c) => {
   if (!postId) return c.json<UiResponse>({ showToast: 'No post context' }, 400);
 
   try {
-    const phase = await getPhase(postId);
+    const [phase, answers] = await Promise.all([getPhase(postId), getAnswers(postId)]);
     if (phase !== 'submit') {
       return c.json<UiResponse>({ showToast: `Already past submit phase (current: ${phase})` }, 400);
+    }
+    const humanAnswers = answers.filter((a) => !a.isAI);
+    if (humanAnswers.length === 0) {
+      return c.json<UiResponse>({ showToast: 'Need at least 1 human answer before voting can start' }, 400);
     }
     await advanceToVote(postId);
     return c.json<UiResponse>({ showToast: '✅ Voting phase started! AI answers injected.' });

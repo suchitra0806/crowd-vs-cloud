@@ -233,8 +233,10 @@ api.post('/game/advance-to-vote', async (c) => {
   const { postId } = context;
   if (!postId) return c.json<ErrResp>({ status: 'error', message: 'Missing postId' }, 400);
   try {
-    const phase = await getPhase(postId);
+    const [phase, answers] = await Promise.all([getPhase(postId), getAnswers(postId)]);
     if (phase !== 'submit') return c.json<ErrResp>({ status: 'error', message: 'Not in submit phase' }, 400);
+    const humanAnswers = answers.filter((a) => !a.isAI);
+    if (humanAnswers.length === 0) return c.json<ErrResp>({ status: 'error', message: 'Need at least 1 human answer before voting can start' }, 400);
     await advanceToVote(postId);
     return c.json({ success: true });
   } catch (e) {
