@@ -21,12 +21,17 @@ export const Splash = () => {
   const [preview, setPreview] = useState<GamePreviewResponse | null>(null);
 
   useEffect(() => {
-    fetch('/api/game/preview')
-      .then((r) => r.json())
-      .then((data: GamePreviewResponse) => {
-        if (data.type === 'game_preview') setPreview(data);
-      })
-      .catch(console.error);
+    const fetchPreview = () => {
+      fetch('/api/game/preview')
+        .then((r) => r.json())
+        .then((data: GamePreviewResponse) => {
+          if (data.type === 'game_preview') setPreview(data);
+        })
+        .catch(console.error);
+    };
+    fetchPreview();
+    const interval = setInterval(fetchPreview, 15_000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
