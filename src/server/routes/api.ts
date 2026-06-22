@@ -40,7 +40,7 @@ api.get('/game/preview', async (c) => {
       type: 'game_preview',
       phase,
       prompt,
-      answerCount: answers.length,
+      answerCount: answers.filter((a) => !a.isAI).length,
     });
   } catch (e) {
     console.error('Preview error:', e);
@@ -89,7 +89,7 @@ api.get('/game/init', async (c) => {
       prompt,
       username: username ?? 'anonymous',
       isMod,
-      answerCount: answers.length,
+      answerCount: answers.filter((a) => !a.isAI).length,
       userHasSubmitted,
       userAnswerText: userAnswer?.text,
       userHasVoted,
@@ -176,7 +176,7 @@ api.post('/game/submit', async (c) => {
     return c.json<SubmitAnswerResponse>({
       type: 'submit_answer',
       success: true,
-      answerCount: answers.length,
+      answerCount: answers.filter((a) => !a.isAI).length,
     });
   } catch (e) {
     console.error('Submit error:', e);
