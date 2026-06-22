@@ -8,7 +8,7 @@ export async function generateAIAnswers(prompt: string, humanAnswers: string[]):
 
   const userMessage = `You are playing a party game. Players were asked: "${prompt}"
 
-${examples ? `Human answers already submitted:\n${examples}\n\n` : ''}Generate exactly 3 SHORT answers (1-8 words each) that sound like genuine human responses — witty, playful, or surprising. Do NOT repeat any existing answer. Do NOT sound robotic or use corporate language.
+${examples ? `Human answers already submitted:\n${examples}\n\n` : ''}Generate exactly 3 SHORT answers (1-8 words each) that sound like genuine human responses — witty, playful, or surprising. Do NOT repeat any existing answer. Do NOT sound robotic or use corporate language. Write in all lowercase, no capital letters.
 
 Return ONLY a JSON array of 3 strings. Example: ["answer one", "answer two", "answer three"]`;
 
@@ -43,6 +43,6 @@ Return ONLY a JSON array of 3 strings. Example: ["answer one", "answer two", "an
 
   return parsed
     .slice(0, 3)
-    .map((x) => String(x).trim())
+    .map((x) => String(x).trim().toLowerCase())
     .filter(Boolean);
 }
