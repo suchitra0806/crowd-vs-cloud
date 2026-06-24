@@ -5,6 +5,20 @@ import { createRoot } from 'react-dom/client';
 import { useGame } from './hooks/useGame';
 import type { AnswerForResults, AnswerForVote, ScoreBreakdownEntry } from '../shared/api';
 
+// ── Brand ─────────────────────────────────────────────────────────────────────
+
+const BrandMark = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
+  const cls =
+    size === 'lg' ? 'text-3xl' : size === 'sm' ? 'text-base' : 'text-2xl';
+  return (
+    <div className={`flex items-center gap-1.5 font-black ${cls}`}>
+      <span className="text-[#d93900]">Crowd</span>
+      <span className="text-gray-300 dark:text-gray-600">vs</span>
+      <span className="text-purple-600">Cloud</span>
+    </div>
+  );
+};
+
 // ── Submit Phase ─────────────────────────────────────────────────────────────
 
 type SubmitViewProps = {
@@ -45,47 +59,61 @@ const SubmitView = ({
     if (err) setFieldError(err);
   };
 
+  const charPct = text.length / 120;
+  const counterColor =
+    charPct >= 0.95
+      ? 'text-red-500'
+      : charPct >= 0.8
+        ? 'text-amber-500'
+        : 'text-gray-400';
+
   return (
     <div className="flex flex-col gap-6 w-full max-w-md">
-      <div className="text-center">
+      <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 px-5 py-4 text-center">
         <span className="text-xs font-semibold uppercase tracking-widest text-[#d93900]">
           Round Open
         </span>
-        <h2 className="text-2xl font-bold mt-2 text-gray-900 dark:text-white leading-tight">
+        <h2 className="text-xl font-bold mt-2 text-gray-900 dark:text-white leading-snug">
           {prompt}
         </h2>
-        <p className={`text-sm mt-1 transition-colors duration-300 ${flash ? 'text-[#d93900] font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
-          {answerCount} {answerCount === 1 ? 'answer' : 'answers'} submitted so far
+        <p
+          className={`text-sm mt-2 transition-colors duration-300 ${
+            flash ? 'text-[#d93900] font-semibold' : 'text-gray-400 dark:text-gray-500'
+          }`}
+        >
+          {answerCount} {answerCount === 1 ? 'answer' : 'answers'} submitted
         </p>
       </div>
 
       {userHasSubmitted ? (
-        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 p-4 text-center">
-          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wide mb-1">
+        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 p-5 text-center">
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wide mb-2">
             Your answer
           </p>
           <p className="text-lg font-medium text-gray-900 dark:text-white">
-            "{userAnswerText}"
+            &ldquo;{userAnswerText}&rdquo;
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-3">
             Waiting for voting to open…
           </p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
           <textarea
-            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-3 text-base resize-none focus:outline-none focus:ring-2 focus:ring-[#d93900] placeholder-gray-400"
+            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-3.5 text-base resize-none focus:outline-none focus:ring-2 focus:ring-[#d93900] placeholder-gray-300 dark:placeholder-gray-600 transition-shadow"
             rows={3}
             maxLength={120}
-            placeholder="Your answer…"
+            placeholder="Type your answer…"
             value={text}
             onChange={(e) => {
               setText(e.target.value);
               setFieldError(null);
             }}
           />
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-400">{text.length}/120</span>
+          <div className="flex items-center justify-between px-0.5">
+            <span className={`text-xs tabular-nums ${counterColor}`}>
+              {text.length}/120
+            </span>
             {fieldError && (
               <span className="text-xs text-red-500">{fieldError}</span>
             )}
@@ -93,9 +121,9 @@ const SubmitView = ({
           <button
             onClick={() => void handleSubmit()}
             disabled={!text.trim() || submitting}
-            className="w-full py-3 rounded-xl bg-[#d93900] text-white font-semibold text-base disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#c23300] transition-colors"
+            className="w-full py-3 rounded-xl bg-[#d93900] text-white font-semibold text-base disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#c23300] active:scale-[0.98] transition-all"
           >
-            {submitting ? 'Submitting…' : 'Submit my answer'}
+            {submitting ? 'Submitting…' : 'Submit my answer →'}
           </button>
         </div>
       )}
@@ -128,6 +156,7 @@ const VoteView = ({
   const classified = Object.keys(selections).length;
   const total = answers.length;
   const allClassified = classified === total;
+  const progressPct = total > 0 ? (classified / total) * 100 : 0;
 
   const toggle = (id: string, value: 'human' | 'ai') => {
     if (userHasVoted) return;
@@ -141,17 +170,27 @@ const VoteView = ({
 
   return (
     <div className="flex flex-col gap-4 w-full max-w-md">
-      <div className="text-center">
+      <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 px-5 py-4 text-center">
         <span className="text-xs font-semibold uppercase tracking-widest text-[#d93900]">
           Voting Open
         </span>
-        <h2 className="text-xl font-bold mt-1 text-gray-900 dark:text-white leading-tight">
+        <h2 className="text-xl font-bold mt-2 text-gray-900 dark:text-white leading-snug">
           {prompt}
         </h2>
+
         {!userHasVoted && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {classified}/{total} classified — pick Human or AI for each answer
-          </p>
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
+              <span>classified</span>
+              <span className="tabular-nums">{classified}/{total}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[#d93900] transition-all duration-300"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
         )}
       </div>
 
@@ -161,31 +200,31 @@ const VoteView = ({
           return (
             <div
               key={answer.id}
-              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3"
+              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4"
             >
-              <p className="text-base text-gray-900 dark:text-white mb-3 font-medium">
-                "{answer.text}"
+              <p className="text-base text-gray-900 dark:text-white mb-3 font-medium leading-snug">
+                &ldquo;{answer.text}&rdquo;
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => toggle(answer.id, 'human')}
                   disabled={userHasVoted}
-                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 active:scale-95 ${
                     sel === 'human'
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-blue-500 text-white ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-800 scale-[1.02]'
                       : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40'
-                  } disabled:opacity-60`}
+                  } disabled:opacity-60 disabled:cursor-default`}
                 >
                   🧠 Human
                 </button>
                 <button
                   onClick={() => toggle(answer.id, 'ai')}
                   disabled={userHasVoted}
-                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 active:scale-95 ${
                     sel === 'ai'
-                      ? 'bg-purple-500 text-white'
+                      ? 'bg-purple-500 text-white ring-2 ring-purple-500 ring-offset-2 dark:ring-offset-gray-800 scale-[1.02]'
                       : 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/40'
-                  } disabled:opacity-60`}
+                  } disabled:opacity-60 disabled:cursor-default`}
                 >
                   🤖 AI
                 </button>
@@ -196,7 +235,7 @@ const VoteView = ({
       </div>
 
       {userHasVoted ? (
-        <div className="text-center py-3 text-sm text-gray-500 dark:text-gray-400">
+        <div className="text-center py-3 text-sm text-gray-400 dark:text-gray-500">
           Votes locked in — waiting for results…
         </div>
       ) : (
@@ -207,9 +246,13 @@ const VoteView = ({
           <button
             onClick={() => void handleSubmit()}
             disabled={!allClassified || submitting}
-            className="w-full py-3 rounded-xl bg-[#d93900] text-white font-semibold text-base disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#c23300] transition-colors"
+            className="w-full py-3 rounded-xl bg-[#d93900] text-white font-semibold text-base disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#c23300] active:scale-[0.98] transition-all"
           >
-            {submitting ? 'Locking in…' : `Lock in votes (${classified}/${total})`}
+            {submitting
+              ? 'Locking in…'
+              : allClassified
+                ? 'Lock in votes →'
+                : `${classified}/${total} classified`}
           </button>
         </div>
       )}
@@ -218,6 +261,8 @@ const VoteView = ({
 };
 
 // ── Results Phase ─────────────────────────────────────────────────────────────
+
+const MEDAL = ['🥇', '🥈', '🥉'];
 
 type ResultsViewProps = {
   prompt: string;
@@ -242,27 +287,32 @@ const ResultsView = ({
 }: ResultsViewProps) => {
   return (
     <div className="flex flex-col gap-5 w-full max-w-md">
-      <div className="text-center">
+      <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 px-5 py-5 text-center">
         <span className="text-xs font-semibold uppercase tracking-widest text-[#d93900]">
           Results
         </span>
-        <h2 className="text-xl font-bold mt-1 text-gray-900 dark:text-white leading-tight">
+        <h2 className="text-xl font-bold mt-2 text-gray-900 dark:text-white leading-snug">
           {prompt}
         </h2>
-        <div className="mt-3 inline-block rounded-2xl bg-[#d93900]/10 px-5 py-2">
-          <span className="text-2xl font-bold text-[#d93900]">{userScore}</span>
-          <span className="text-sm text-gray-600 dark:text-gray-400 ml-1">pts</span>
+
+        <div className="mt-4 inline-flex flex-col items-center rounded-2xl bg-[#d93900]/10 px-8 py-3">
+          <span className="text-4xl font-black text-[#d93900] tabular-nums">{userScore}</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-[#d93900]/70 mt-0.5">
+            points
+          </span>
         </div>
+
         {userAnswerText && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Your answer: "{userAnswerText}"
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-3">
+            Your answer: &ldquo;{userAnswerText}&rdquo;
           </p>
         )}
+
         {scoreBreakdown && scoreBreakdown.length > 0 && (
-          <div className="mt-3 text-left w-full">
+          <div className="mt-3 text-left w-full space-y-1">
             {scoreBreakdown.map((entry, i) => (
-              <div key={i} className="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400 py-0.5">
-                <span className="font-semibold text-[#d93900] shrink-0">+{entry.points}</span>
+              <div key={i} className="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400">
+                <span className="font-bold text-[#d93900] shrink-0 tabular-nums">+{entry.points}</span>
                 <span>{entry.reason}</span>
               </div>
             ))}
@@ -270,8 +320,8 @@ const ResultsView = ({
         )}
       </div>
 
-      <div className="flex flex-col gap-2">
-        {revealedAnswers.map((answer) => {
+      <div className="flex flex-col gap-2.5">
+        {revealedAnswers.map((answer, i) => {
           const userGuess = userVotes?.[answer.id];
           const guessedRight = userGuess
             ? (userGuess === 'ai') === answer.isAI
@@ -280,18 +330,19 @@ const ResultsView = ({
           return (
             <div
               key={answer.id}
-              className={`rounded-xl border p-3 ${
+              className={`reveal-card rounded-xl border p-4 ${
                 answer.isAI
-                  ? 'border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20'
-                  : 'border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20'
+                  ? 'border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20'
+                  : 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20'
               }`}
+              style={{ animationDelay: `${i * 80}ms` }}
             >
-              <div className="flex items-start justify-between gap-2 mb-1">
-                <p className="text-base font-medium text-gray-900 dark:text-white flex-1">
-                  "{answer.text}"
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <p className="text-base font-medium text-gray-900 dark:text-white flex-1 leading-snug">
+                  &ldquo;{answer.text}&rdquo;
                 </p>
                 <span
-                  className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${
+                  className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
                     answer.isAI
                       ? 'bg-purple-200 dark:bg-purple-700 text-purple-800 dark:text-purple-200'
                       : 'bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-200'
@@ -300,15 +351,19 @@ const ResultsView = ({
                   {answer.isAI ? '🤖 AI' : '🧠 Human'}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
                 <span>
-                  {!answer.isAI && answer.authorUsername ? `by u/${answer.authorUsername}` : ''}
+                  {!answer.isAI && answer.authorUsername
+                    ? `u/${answer.authorUsername}`
+                    : ''}
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <span>🧠 {answer.humanVoteCount}</span>
                   <span>🤖 {answer.aiVoteCount}</span>
                   {guessedRight !== null && (
-                    <span className={guessedRight ? 'text-emerald-500' : 'text-red-400'}>
+                    <span
+                      className={`font-bold ${guessedRight ? 'text-emerald-500' : 'text-red-400'}`}
+                    >
                       {guessedRight ? '✓' : '✗'}
                     </span>
                   )}
@@ -321,7 +376,7 @@ const ResultsView = ({
 
       {leaderboard.length > 0 && (
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
+          <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-widest">
             Leaderboard
           </h3>
           <ol className="flex flex-col gap-2">
@@ -334,12 +389,14 @@ const ResultsView = ({
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
               >
-                <span>
-                  <span className="text-gray-400 mr-2">#{i + 1}</span>
+                <span className="flex items-center gap-2">
+                  <span className="w-5 text-center">
+                    {i < 3 ? MEDAL[i] : <span className="text-gray-400 text-xs">#{i + 1}</span>}
+                  </span>
                   u/{entry.username}
                   {entry.username === username ? ' (you)' : ''}
                 </span>
-                <span>{entry.score} pts</span>
+                <span className="tabular-nums">{entry.score} pts</span>
               </li>
             ))}
           </ol>
@@ -476,26 +533,29 @@ export const App = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
-        <p className="text-gray-500 dark:text-gray-400 animate-pulse">Loading…</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-gray-900 gap-3">
+        <BrandMark size="md" />
+        <p className="text-gray-400 dark:text-gray-500 text-sm animate-pulse">Loading…</p>
       </div>
     );
   }
 
   if (error || !state) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900 px-4">
-        <p className="text-red-500 text-center">{error ?? 'Something went wrong.'}</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-gray-900 gap-3 px-4">
+        <BrandMark size="sm" />
+        <p className="text-red-500 text-center text-sm">{error ?? 'Something went wrong.'}</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-white dark:bg-gray-900 px-4 py-8">
-      <div className="w-full max-w-md mb-6 flex items-center gap-2">
-        <span className="text-lg font-black text-[#d93900]">Crowd</span>
-        <span className="text-lg font-black text-gray-400">vs</span>
-        <span className="text-lg font-black text-purple-600">Cloud</span>
+      <div className="w-full max-w-md mb-8 text-center">
+        <BrandMark size="lg" />
+        <p className="text-xs text-gray-400 uppercase tracking-widest mt-1.5">
+          Can you spot the AI?
+        </p>
       </div>
 
       {state.phase === 'submit' && (
