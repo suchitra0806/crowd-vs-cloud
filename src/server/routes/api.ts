@@ -238,8 +238,8 @@ api.post('/game/advance-to-vote', async (c) => {
     if (phase !== 'submit') return c.json<ErrResp>({ status: 'error', message: 'Not in submit phase' }, 400);
     const humanAnswers = answers.filter((a) => !a.isAI);
     if (humanAnswers.length === 0) return c.json<ErrResp>({ status: 'error', message: 'Need at least 1 human answer before voting can start' }, 400);
-    await advanceToVote(postId);
-    return c.json({ success: true });
+    const warning = await advanceToVote(postId);
+    return c.json({ success: true, warning });
   } catch (e) {
     console.error('Advance to vote error:', e);
     return c.json<ErrResp>({ status: 'error', message: 'Failed to start voting phase' }, 500);
