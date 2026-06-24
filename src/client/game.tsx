@@ -1,6 +1,6 @@
 import './index.css';
 
-import { StrictMode, useState } from 'react';
+import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useGame } from './hooks/useGame';
 import type { AnswerForResults, AnswerForVote, ScoreBreakdownEntry } from '../shared/api';
@@ -26,6 +26,18 @@ const SubmitView = ({
 }: SubmitViewProps) => {
   const [text, setText] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
+  const [flash, setFlash] = useState(false);
+  const prevCount = useRef(answerCount);
+
+  useEffect(() => {
+    if (answerCount > prevCount.current) {
+      setFlash(true);
+      const t = setTimeout(() => setFlash(false), 600);
+      prevCount.current = answerCount;
+      return () => clearTimeout(t);
+    }
+    prevCount.current = answerCount;
+  }, [answerCount]);
 
   const handleSubmit = async () => {
     if (!text.trim()) return;
@@ -42,7 +54,7 @@ const SubmitView = ({
         <h2 className="text-2xl font-bold mt-2 text-gray-900 dark:text-white leading-tight">
           {prompt}
         </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        <p className={`text-sm mt-1 transition-colors duration-300 ${flash ? 'text-[#d93900] font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
           {answerCount} {answerCount === 1 ? 'answer' : 'answers'} submitted so far
         </p>
       </div>
