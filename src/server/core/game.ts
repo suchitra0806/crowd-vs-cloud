@@ -55,9 +55,9 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 const FALLBACK_AI_ANSWERS = [
-  'A suspiciously warm doorknob',
-  'The concept of a Tuesday',
-  'Someone else\'s regret, laminated',
+  'a suspiciously warm doorknob',
+  'the concept of a tuesday',
+  'someone else\'s regret, laminated',
 ];
 
 export async function advanceToVote(postId: string): Promise<void> {
