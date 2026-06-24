@@ -8,6 +8,7 @@ import {
   getAnswers,
   getPhase,
   getPrompt,
+  resetGame,
   setAllVotes,
   setAnswers,
 } from '../core/game';
@@ -256,5 +257,22 @@ api.post('/game/advance-to-results', async (c) => {
   } catch (e) {
     console.error('Advance to results error:', e);
     return c.json<ErrResp>({ status: 'error', message: 'Failed to reveal results' }, 500);
+  }
+});
+
+api.post('/game/reset', async (c) => {
+  const { postId } = context;
+  if (!postId) return c.json<ErrResp>({ status: 'error', message: 'Missing postId' }, 400);
+  try {
+    const phase = await getPhase(postId);
+    if (phase !== 'results') return c.json<ErrResp>({ status: 'error', message: 'Can only reset from results phase' }, 400);
+    const body = await c.req.json<{ prompt?: string }>();
+    const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
+    if (!prompt) return c.json<ErrResp>({ status: 'error', message: 'A prompt is required' }, 400);
+    await resetGame(postId, prompt);
+    return c.json({ success: true });
+  } catch (e) {
+    console.error('Reset error:', e);
+    return c.json<ErrResp>({ status: 'error', message: 'Failed to reset game' }, 500);
   }
 });
