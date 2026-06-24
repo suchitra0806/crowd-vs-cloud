@@ -336,10 +336,12 @@ type ModPanelProps = {
 const ModPanel = ({ phase, onAdvanceToVote, onAdvanceToResults }: ModPanelProps) => {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [pending, setPending] = useState<null | { action: () => Promise<void>; label: string }>(null);
 
   const run = async (action: () => Promise<void>, label: string) => {
     setBusy(true);
     setMsg(null);
+    setPending(null);
     try {
       await action();
       setMsg(`✓ ${label}`);
@@ -353,22 +355,48 @@ const ModPanel = ({ phase, onAdvanceToVote, onAdvanceToResults }: ModPanelProps)
   return (
     <div className="w-full max-w-md mt-6 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-3">
       <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2">Mod controls</p>
-      <div className="flex gap-2">
-        <button
-          onClick={() => void run(onAdvanceToVote, 'Voting phase started')}
-          disabled={busy || phase !== 'submit'}
-          className="flex-1 py-2 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-        >
-          → Start Voting
-        </button>
-        <button
-          onClick={() => void run(onAdvanceToResults, 'Results revealed')}
-          disabled={busy || phase !== 'vote'}
-          className="flex-1 py-2 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-        >
-          → Reveal Results
-        </button>
-      </div>
+
+      {pending ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs text-gray-600 dark:text-gray-400">
+            Are you sure you want to <span className="font-semibold">{pending.label.toLowerCase()}</span>? This cannot be undone.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => void run(pending.action, pending.label)}
+              disabled={busy}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors disabled:opacity-40"
+            >
+              Yes, {pending.label}
+            </button>
+            <button
+              onClick={() => setPending(null)}
+              disabled={busy}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <button
+            onClick={() => setPending({ action: onAdvanceToVote, label: 'Start Voting' })}
+            disabled={busy || phase !== 'submit'}
+            className="flex-1 py-2 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          >
+            → Start Voting
+          </button>
+          <button
+            onClick={() => setPending({ action: onAdvanceToResults, label: 'Reveal Results' })}
+            disabled={busy || phase !== 'vote'}
+            className="flex-1 py-2 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          >
+            → Reveal Results
+          </button>
+        </div>
+      )}
+
       {msg && <p className="text-xs text-gray-500 mt-2">{msg}</p>}
     </div>
   );
