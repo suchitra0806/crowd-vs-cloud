@@ -19,6 +19,11 @@ export type LeaderboardEntry = {
   score: number;
 };
 
+export type ScoreBreakdownEntry = {
+  points: number;
+  reason: string;
+};
+
 export type GameInitResponse = {
   type: 'game_init';
   postId: string;
@@ -35,6 +40,7 @@ export type GameInitResponse = {
   revealedAnswers?: AnswerForResults[];
   userScore?: number;
   leaderboard?: LeaderboardEntry[];
+  scoreBreakdown?: ScoreBreakdownEntry[];
 };
 
 export type GamePreviewResponse = {

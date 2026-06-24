@@ -3,7 +3,7 @@ import './index.css';
 import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useGame } from './hooks/useGame';
-import type { AnswerForResults, AnswerForVote } from '../shared/api';
+import type { AnswerForResults, AnswerForVote, ScoreBreakdownEntry } from '../shared/api';
 
 // ── Submit Phase ─────────────────────────────────────────────────────────────
 
@@ -215,6 +215,7 @@ type ResultsViewProps = {
   leaderboard: { username: string; score: number }[];
   userAnswerText?: string | undefined;
   userVotes?: Record<string, 'human' | 'ai'> | undefined;
+  scoreBreakdown?: ScoreBreakdownEntry[];
 };
 
 const ResultsView = ({
@@ -225,6 +226,7 @@ const ResultsView = ({
   leaderboard,
   userAnswerText,
   userVotes,
+  scoreBreakdown,
 }: ResultsViewProps) => {
   return (
     <div className="flex flex-col gap-5 w-full max-w-md">
@@ -243,6 +245,16 @@ const ResultsView = ({
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Your answer: "{userAnswerText}"
           </p>
+        )}
+        {scoreBreakdown && scoreBreakdown.length > 0 && (
+          <div className="mt-3 text-left w-full">
+            {scoreBreakdown.map((entry, i) => (
+              <div key={i} className="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400 py-0.5">
+                <span className="font-semibold text-[#d93900] shrink-0">+{entry.points}</span>
+                <span>{entry.reason}</span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
@@ -505,6 +517,7 @@ export const App = () => {
           leaderboard={state.leaderboard ?? []}
           userAnswerText={state.userAnswerText}
           userVotes={state.userVotes}
+          scoreBreakdown={state.scoreBreakdown ?? []}
         />
       )}
 
