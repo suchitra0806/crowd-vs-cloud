@@ -120,6 +120,32 @@ export async function advanceToResults(postId: string): Promise<void> {
   ]);
 }
 
+export async function resetGame(postId: string, newPrompt: string): Promise<void> {
+  const [answers, allVotes] = await Promise.all([
+    getAnswers(postId),
+    getAllVotes(postId),
+  ]);
+
+  const authorIds = answers.filter((a) => !a.isAI).map((a) => a.authorId);
+  const voterIds = Object.keys(allVotes.voterNames);
+  const participantIds = [...new Set([...authorIds, ...voterIds])];
+
+  const perUserKeys = participantIds.flatMap((uid) => [
+    k(postId, `user_answer:${uid}`),
+    k(postId, `user_voted:${uid}`),
+    k(postId, `user_votes:${uid}`),
+  ]);
+
+  await Promise.all([
+    redis.set(k(postId, 'prompt'), newPrompt),
+    redis.set(k(postId, 'phase'), 'submit'),
+    redis.set(k(postId, 'answers'), JSON.stringify([])),
+    redis.del(k(postId, 'all_votes')),
+    redis.del(k(postId, 'scores')),
+    ...perUserKeys.map((key) => redis.del(key)),
+  ]);
+}
+
 export function buildLeaderboard(scores: Record<string, number>): LeaderboardEntry[] {
   return Object.entries(scores)
     .map(([username, score]) => ({ username, score }))

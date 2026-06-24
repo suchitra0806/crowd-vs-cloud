@@ -329,14 +329,17 @@ const ResultsView = ({
 
 type ModPanelProps = {
   phase: string;
+  currentPrompt: string;
   onAdvanceToVote: () => Promise<void>;
   onAdvanceToResults: () => Promise<void>;
+  onReset: (prompt: string) => Promise<void>;
 };
 
-const ModPanel = ({ phase, onAdvanceToVote, onAdvanceToResults }: ModPanelProps) => {
+const ModPanel = ({ phase, currentPrompt, onAdvanceToVote, onAdvanceToResults, onReset }: ModPanelProps) => {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [pending, setPending] = useState<null | { action: () => Promise<void>; label: string }>(null);
+  const [newPrompt, setNewPrompt] = useState(currentPrompt);
 
   const run = async (action: () => Promise<void>, label: string) => {
     setBusy(true);
@@ -397,6 +400,25 @@ const ModPanel = ({ phase, onAdvanceToVote, onAdvanceToResults }: ModPanelProps)
         </div>
       )}
 
+      {phase === 'results' && !pending && (
+        <div className="mt-3 pt-3 border-t border-dashed border-gray-200 dark:border-gray-700 flex flex-col gap-2">
+          <input
+            type="text"
+            value={newPrompt}
+            onChange={(e) => setNewPrompt(e.target.value)}
+            placeholder="New prompt for next round..."
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#d93900] placeholder-gray-400"
+          />
+          <button
+            onClick={() => setPending({ action: () => onReset(newPrompt), label: 'Start New Round' })}
+            disabled={busy || !newPrompt.trim()}
+            className="w-full py-2 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          >
+            ↺ Start new round
+          </button>
+        </div>
+      )}
+
       {msg && <p className="text-xs text-gray-500 mt-2">{msg}</p>}
     </div>
   );
@@ -414,6 +436,15 @@ export const App = () => {
 
   const advanceToResults = async () => {
     await fetch('/api/game/advance-to-results', { method: 'POST' });
+    await refresh();
+  };
+
+  const resetGame = async (prompt: string) => {
+    await fetch('/api/game/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+    });
     await refresh();
   };
 
@@ -478,8 +509,10 @@ export const App = () => {
       {state.isMod && (
         <ModPanel
           phase={state.phase}
+          currentPrompt={state.prompt}
           onAdvanceToVote={advanceToVote}
           onAdvanceToResults={advanceToResults}
+          onReset={resetGame}
         />
       )}
     </div>
