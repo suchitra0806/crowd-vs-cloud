@@ -330,7 +330,7 @@ const ResultsView = ({
 type ModPanelProps = {
   phase: string;
   currentPrompt: string;
-  onAdvanceToVote: () => Promise<void>;
+  onAdvanceToVote: () => Promise<string | null>;
   onAdvanceToResults: () => Promise<void>;
   onReset: (prompt: string) => Promise<void>;
 };
@@ -338,16 +338,16 @@ type ModPanelProps = {
 const ModPanel = ({ phase, currentPrompt, onAdvanceToVote, onAdvanceToResults, onReset }: ModPanelProps) => {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [pending, setPending] = useState<null | { action: () => Promise<void>; label: string }>(null);
+  const [pending, setPending] = useState<null | { action: () => Promise<string | null | void>; label: string }>(null);
   const [newPrompt, setNewPrompt] = useState(currentPrompt);
 
-  const run = async (action: () => Promise<void>, label: string) => {
+  const run = async (action: () => Promise<string | null | void>, label: string) => {
     setBusy(true);
     setMsg(null);
     setPending(null);
     try {
-      await action();
-      setMsg(`✓ ${label}`);
+      const warning = await action();
+      setMsg(warning ? `⚠️ ${warning}` : `✓ ${label}`);
     } catch {
       setMsg('Something went wrong');
     } finally {
@@ -429,9 +429,11 @@ const ModPanel = ({ phase, currentPrompt, onAdvanceToVote, onAdvanceToResults, o
 export const App = () => {
   const { state, loading, error, submitting, submitAnswer, submitVotes, refresh } = useGame();
 
-  const advanceToVote = async () => {
-    await fetch('/api/game/advance-to-vote', { method: 'POST' });
+  const advanceToVote = async (): Promise<string | null> => {
+    const res = await fetch('/api/game/advance-to-vote', { method: 'POST' });
+    const data = await res.json() as { warning?: string | null };
     await refresh();
+    return data.warning ?? null;
   };
 
   const advanceToResults = async () => {

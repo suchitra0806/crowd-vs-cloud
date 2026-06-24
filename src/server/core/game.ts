@@ -60,16 +60,21 @@ const FALLBACK_AI_ANSWERS = [
   'someone else\'s regret, laminated',
 ];
 
-export async function advanceToVote(postId: string): Promise<void> {
+export async function advanceToVote(postId: string): Promise<string | null> {
   const [answers, prompt] = await Promise.all([
     getAnswers(postId),
     getPrompt(postId),
   ]);
 
   let aiTexts: string[];
+  let warning: string | null = null;
   try {
     aiTexts = await generateAIAnswers(prompt, answers.map((a) => a.text));
   } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    warning = msg.includes('not configured')
+      ? 'API key not set — used placeholder answers. Run: npx devvit settings set ANTHROPIC_API_KEY'
+      : 'Claude unavailable — used placeholder answers.';
     console.error('AI generation failed, using fallbacks:', e);
     aiTexts = FALLBACK_AI_ANSWERS;
   }
@@ -87,6 +92,7 @@ export async function advanceToVote(postId: string): Promise<void> {
     redis.set(k(postId, 'answers'), JSON.stringify(mixed)),
     redis.set(k(postId, 'phase'), 'vote'),
   ]);
+  return warning;
 }
 
 export async function advanceToResults(postId: string): Promise<void> {
