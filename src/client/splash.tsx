@@ -36,10 +36,15 @@ export const Splash = () => {
 
   return (
     <div className="flex flex-col justify-center items-center min-h-screen gap-4 bg-white dark:bg-gray-900 px-4">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-base font-black text-[#d93900]">Crowd</span>
-        <span className="text-base font-black text-gray-400">vs</span>
-        <span className="text-base font-black text-purple-600">Cloud</span>
+      <div className="text-center mb-1">
+        <div className="flex items-center justify-center gap-1.5 font-black text-2xl">
+          <span className="text-[#d93900]">Crowd</span>
+          <span className="text-gray-300 dark:text-gray-600">vs</span>
+          <span className="text-purple-600">Cloud</span>
+        </div>
+        <p className="text-xs text-gray-400 uppercase tracking-widest mt-1">
+          Can you spot the AI?
+        </p>
       </div>
 
       {preview ? (
@@ -58,14 +63,14 @@ export const Splash = () => {
           </div>
         </>
       ) : (
-        <p className="text-gray-500 dark:text-gray-400 text-sm animate-pulse">Loading…</p>
+        <p className="text-gray-400 dark:text-gray-500 text-sm animate-pulse">Loading…</p>
       )}
 
       <button
-        className="mt-2 px-6 py-2.5 bg-[#d93900] text-white font-semibold rounded-full hover:bg-[#c23300] transition-colors text-sm"
+        className="mt-2 px-6 py-2.5 bg-[#d93900] text-white font-semibold rounded-full hover:bg-[#c23300] active:scale-95 transition-all text-sm"
         onClick={(e) => requestExpandedMode(e.nativeEvent, 'game')}
       >
-        Play now
+        Play now →
       </button>
     </div>
   );
