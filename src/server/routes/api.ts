@@ -18,6 +18,7 @@ import type {
   ErrorResponse,
   GameInitResponse,
   GamePreviewResponse,
+  ScoreBreakdownEntry,
   SubmitAnswerResponse,
   VoteResponse,
 } from '../../shared/api';
@@ -128,11 +129,38 @@ api.get('/game/init', async (c) => {
       };
     });
 
+    const scoreBreakdown: ScoreBreakdownEntry[] = [];
+    for (const answer of answers) {
+      const userGuess = userVotes?.[answer.id];
+      if (userGuess !== undefined) {
+        const correct = userGuess === 'ai' ? answer.isAI : !answer.isAI;
+        if (correct) {
+          scoreBreakdown.push({
+            points: 1,
+            reason: `correctly spotted "${answer.text}" as ${answer.isAI ? 'AI' : 'Human'}`,
+          });
+        }
+      }
+      if (!answer.isAI && answer.authorUsername === (username ?? '')) {
+        const votersOnThis = allVotes.byAnswer[answer.id] ?? {};
+        for (const [voterId, vote] of Object.entries(votersOnThis)) {
+          if (vote === 'ai' && voterId !== userId) {
+            const voterName = allVotes.voterNames[voterId] ?? voterId;
+            scoreBreakdown.push({
+              points: 2,
+              reason: `u/${voterName} thought your answer was AI`,
+            });
+          }
+        }
+      }
+    }
+
     return c.json<GameInitResponse>({
       ...base,
       revealedAnswers,
       userScore: scores[username ?? ''] ?? 0,
       leaderboard: buildLeaderboard(scores),
+      scoreBreakdown,
     });
   } catch (e) {
     console.error('Game init error:', e);
