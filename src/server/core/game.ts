@@ -154,6 +154,7 @@ export async function resetGame(postId: string, newPrompt: string): Promise<void
 
 export function buildLeaderboard(scores: Record<string, number>): LeaderboardEntry[] {
   return Object.entries(scores)
+    .filter(([username]) => username !== 'anonymous')
     .map(([username, score]) => ({ username, score }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 10);

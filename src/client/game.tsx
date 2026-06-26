@@ -384,7 +384,7 @@ const ResultsView = ({
               <li
                 key={entry.username}
                 className={`flex items-center justify-between text-sm ${
-                  entry.username === username
+                  entry.username === username && username !== 'anonymous'
                     ? 'font-bold text-[#d93900]'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
@@ -394,7 +394,7 @@ const ResultsView = ({
                     {i < 3 ? MEDAL[i] : <span className="text-gray-400 text-xs">#{i + 1}</span>}
                   </span>
                   u/{entry.username}
-                  {entry.username === username ? ' (you)' : ''}
+                  {entry.username === username && username !== 'anonymous' ? ' (you)' : ''}
                 </span>
                 <span className="tabular-nums">{entry.score} pts</span>
               </li>
