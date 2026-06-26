@@ -27,15 +27,15 @@
         "endpoint": "/internal/menu/post-create"
       },
       {
-        "label": "→ Start Voting Phase",
-        "description": "Inject AI answers and open voting",
+        "label": "Start Voting Phase",
+        "description": "Mix in AI answers and open voting to the community",
         "location": "post",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/advance-to-vote"
       },
       {
-        "label": "→ Reveal Results",
-        "description": "Calculate scores and show the reveal",
+        "label": "Reveal Results",
+        "description": "Score all votes and show who fooled who",
         "location": "post",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/advance-to-results"
@@ -47,7 +47,7 @@
       "ANTHROPIC_API_KEY": {
         "type": "string",
         "label": "Anthropic API Key",
-        "helpText": "Your Anthropic API key for generating AI answers",
+        "helpText": "Required. Get yours at console.anthropic.com — used to generate AI answers during each round.",
         "isSecret": true
       }
     }
